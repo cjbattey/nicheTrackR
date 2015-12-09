@@ -9,7 +9,7 @@ library(raster);library(ecodist);library(plyr)
 print("reading in data")
 pre <- read.table("./data/climate_CRU2/text/grid_10min_pre.dat",header=F,sep="",colClasses=c(rep("numeric",26)))
 pre <- pre[,1:14]
-#frs <- read.table("./data/climate_CRU2/text/grid_10min_frs.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
+frs <- read.table("./data/climate_CRU2/text/grid_10min_frs.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 dtr <- read.table("./data/climate_CRU2/text/grid_10min_dtr.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 #rdo <- read.table("./data/climate_CRU2/text/grid_10min_rd0.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 #reh <-read.table("./data/climate_CRU2/text/grid_10min_reh.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
@@ -17,8 +17,8 @@ dtr <- read.table("./data/climate_CRU2/text/grid_10min_dtr.dat",header=F,sep="",
 tmp <- read.table("./data/climate_CRU2/text/grid_10min_tmp.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 #wnd <- read.table("./data/climate_CRU2/text/grid_10min_wnd.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 print("aligning points and reformatting")
-clim.data <- list(pre,dtr,tmp)
-names(clim.data) <- c("pre","dtr","tmp")
+clim.data <- list(pre,frs,dtr,tmp)
+names(clim.data) <- c("pre","frs","dtr","tmp")
 
 clim.data <- lapply(clim.data,FUN=function(e) setNames(e,c("lat","long","Jan","Feb","Mar",
                                                            "Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")))
@@ -32,7 +32,7 @@ clim.data.wint <- lapply(clim.data,FUN=function(e) {
     ,r,field="var")
 }
 )
-clim.winter <- crop(stack(clim.data.wint),c(-170,-80,15,70))
+clim.winter <- crop(stack(clim.data.wint),ext)
 #transform rasters back to data frame (now w/same points & order)
 #clim.winter <- lapply(clim.data.wint,FUN=function(e) {
 #  as.data.frame(e)
@@ -50,7 +50,7 @@ clim.data.brd <- lapply(clim.data,FUN=function(e) {
     ,r,field="var")
 }
 )
-clim.breeding <- crop(stack(clim.data.brd),c(-170,-80,15,70))
+clim.breeding <- crop(stack(clim.data.brd),ext)
 #clim.breeding <- lapply(clim.data.brd,FUN=function(e) {
 #  as.data.frame(e)
 #})

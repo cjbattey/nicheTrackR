@@ -40,9 +40,11 @@ setwd("~/Dropbox/phenology/gimms/")
 # }
 # writeRaster(ndvi,"ndvi_monthly.tif")
 
-ndvi <- crop(stack("~/Dropbox/phenology/ndvi_monthly.tif"),c(-170,-80,15,70))
+ndvi <- crop(stack("~/Dropbox/phenology/ndvi_monthly.tif"),ext)
 ndvi.winter <- (ndvi[[1]]+ndvi[[2]]+ndvi[[12]])/3
 ndvi.breeding <- (ndvi[[4]]+ndvi[[5]]+ndvi[[6]])/3
+ndvi.winter <- resample(ndvi.winter,clim.winter)
+ndvi.breeding <- resample(ndvi.breeding,clim.breeding)
 setwd("~/Documents/nicheTracker/")
 print("NDVI loaded. objects: ndvi.winter and ndvi.breeding.")
 

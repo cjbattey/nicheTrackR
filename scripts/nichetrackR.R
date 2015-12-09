@@ -3,20 +3,21 @@
 library(ecospat);library(ggplot2);library(raster);library(dismo);library(rgeos);library(ade4)
 setwd("~/Documents/nicheTracker/")
 
+#set extent of analysis
+ext <- c(-155,-60,7,75)
+
 #read in and reformat occurrence and climate datasets. See screen log for object names and formats.
 source("scripts/ClimDataSetup.R")
 source("scripts/OccDataSetup.R")
 source("scripts/NDVIDataSetup.R")
 source("scripts/setupLandcover.R")
+source("scripts/nSpecies_Trochil.R")
 
 #match resolutions, add ndvi and landcover to climate data
-ndvi.winter <- resample(ndvi.winter,clim.winter)
-ndvi.breeding <- resample(ndvi.breeding,clim.breeding)
-clim.winter <- addLayer(clim.winter,ndvi.winter)
-clim.breeding <- addLayer(clim.breeding,ndvi.breeding)
-names(clim.winter[[4]]) <- "NDVI"
-names(clim.breeding[[4]]) <- "NDVI"
-
+env.w.raster <- stack(clim.winter,lc.all,ndvi.winter,n.species)
+env.b.raster <- stack(clim.breeding,lc.all,ndvi.winter,n.species)
+names(all.winter) <- c("pre","frs","dtr","forest","woodland","shrub","ndvi","n.species")
+names(all.breeding) <- c("pre","frs","dtr","forest","woodland","shrub","ndvi","n.species")
 
 #overlay occurrences on climate rasters, extract values. 
 ruhu.brd.crop <- SpatialPoints(gridSample(ruhu.brd,clim.winter[[1]])) #subsample breeding data to 1 report per grid cell
