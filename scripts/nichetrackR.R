@@ -41,6 +41,7 @@ results.df <- data.frame(species=character,wnt.res.I=numeric,wnt.brd.I=numeric,
 figures.list <- list()
 
 for(i in c(1:12)) { #initiate loop over species index
+  print("stacking background data and extracting point values")
   bg.wnt <- stack(clim.winter[[i]],nspecies.wnt,ndvi.winter[[i]],lc.all)  #stack background data
   bg.brd <- stack(clim.breeding[[i]],nspecies.brd,ndvi.breeding[[i]],lc.all)  #stack background data
   names(bg.wnt) <- c("pre","frs","dtr","tmp","n.species","ndvi","pc.forest","pc.woodland","pc.shrub")
@@ -52,8 +53,10 @@ for(i in c(1:12)) { #initiate loop over species index
   env.wnt <- na.omit(extract(bg.wnt,as.data.frame(bg.wnt,xy=T)[1:2])) #extract bg data as df
   env.brd <- na.omit(extract(bg.brd,as.data.frame(bg.brd,xy=T)[1:2])) #extract bg data as df
   df <- rbind(sp.res,sp.wnt,sp.brd,env.wnt,env.brd) #rbind full dataset for PCA
-  
+
   weights <- c(rep(0,nrow(sp.res)),rep(0,nrow(sp.wnt)),rep(0,nrow(sp.brd)),rep(1,nrow(env.wnt)),rep(1,nrow(env.brd)))
+  
+  print("Conduct PCA")
   pca <- dudi.pca(df,row.w=weights,nf=2,scannf=F,center=T,scale=T) #run PCA
   
   pc.res <- pca$li[1:nrow(sp.res),] #get subset of PC coordinates for "resident" species points
@@ -63,9 +66,12 @@ for(i in c(1:12)) { #initiate loop over species index
   pc.bg.brd <- pca$li[(nrow(sp.res)+nrow(sp.wnt)+nrow(sp.brd)+nrow(env.wnt)):(nrow(sp.res)+nrow(sp.wnt)+nrow(sp.brd)+nrow(env.wnt)+nrow(env.brd)),]  #get subset of PC coordinates for environment available in breeding season
   pc.bg.all <- pca$li[(nrow(sp.res)+nrow(sp.wnt)+nrow(sp.brd)):(nrow(sp.res)+nrow(sp.wnt)+nrow(sp.brd)+nrow(env.wnt)+nrow(env.brd)),]  #get subset of PC coordinates for full annual environment
   
+  print("Estimate kernel density in niche space")
   grid.res <- ecospat.grid.clim.dyn(pc.bg.all,pc.bg.brd,pc.res,R=100)
   grid.wnt <- ecospat.grid.clim.dyn(pc.bg.all,pc.bg.wnt,pc.wnt,R=100)
   grid.brd <- ecospat.grid.clim.dyn(pc.bg.all,pc.bg.brd,pc.brd,R=100)
+  
+  print("Conducting niche similarity and equivalency tests (see Broenniman 2012)")
   sim.wnt.res <- ecospat.niche.similarity.test(grid.wnt,grid.res,rep=100,one.sided=F)
   sim.wnt.brd <- ecospat.niche.similarity.test(grid.wnt,grid.brd,rep=100,one.sided=F)
   sim.res.brd <- ecospat.niche.similarity.test(grid.res,grid.brd,rep=100,one.sided=F)
@@ -76,8 +82,25 @@ for(i in c(1:12)) { #initiate loop over species index
   results.df <- rbind(results.df,c(names(wnt.months[i]),sim.wnt.res$obs$I,sim.wnt.brd$obs$I,sim.res.brd$obs$I,
                                    sim.wnt.res$p.I,sim.wnt.brd$p.I,sim.res.brd$p.I,eq.wnt.res$p.I,eq.wnt.brd$p.I,
                                    eq.res.brd$p.I))
-  figures.list <- append(figures.list,ecospat.plot.niche(grid.wnt,title=paste(names(wnt.months[i]),"Nonbreeding Niche")))
   
+  print("Saving figures")
+  pdf(file=paste("./figures/",names(wnt.months[i]),"_nicheFigs.pdf",sep=""),width=4,height=4)
+  ecospat.plot.niche(grid.res,title=paste(names(wnt.months[i]),"Resident Niche"))
+  ecospat.plot.niche(grid.wnt,title=paste(names(wnt.months[i]),"Nonbreeding Niche"))
+  ecospat.plot.niche(grid.brd,title=paste(names(wnt.months[i]),"Breeding Niche"))
+  ecospat.plot.niche.dyn(grid.wnt,grid.res,title=paste(names(wnt.months[i]),"Nonbreeding vs. Resident\n Niche Overlap"))
+  ecospat.plot.niche.dyn(grid.wnt,grid.brd,title=paste(names(wnt.months[i]),"Nonbreeding vs. Breeding\n Niche Overlap"))
+  ecospat.plot.niche.dyn(grid.res,grid.brd,title=paste(names(wnt.months[i]),"Resident vs. Breeding\n Niche Overlap"))
+  ecospat.plot.overlap.test(sim.wnt.res,type="I",title=paste(names(wnt.months[i]),"Nonbreeding vs. Resident\n Niche Similarity"))
+  ecospat.plot.overlap.test(sim.wnt.brd,type="I",title=paste(names(wnt.months[i]),"Nonbreeding vs. Breeding\n Niche Similarity"))
+  ecospat.plot.overlap.test(sim.res.brd,type="I",title=paste(names(wnt.months[i]),"Resident vs. Breeding\n Niche Similarity"))
+  ecospat.plot.overlap.test(eq.wnt.res,type="I",title=paste(names(wnt.months[i]),"Nonbreeding vs. Resident\n Niche Equivalency"))
+  ecospat.plot.overlap.test(eq.wnt.brd,type="I",title=paste(names(wnt.months[i]),"Nonbreeding vs. Breeding\n Niche Equivalency"))
+  ecospat.plot.overlap.test(eq.res.brd,type="I",title=paste(names(wnt.months[i]),"Resident vs. Breeding\n Niche Equivalency"))
+  ecospat.plot.contrib(pca$c1,pca$eig)
+  dev.off()
+  
+  print(paste(names(wnt.months[i])),"analysis complete")
 }
 
 
