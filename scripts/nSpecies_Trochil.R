@@ -35,4 +35,5 @@ r <- raster(xmn=-180,xmx=180,ymn=-90,ymx=90,res=1/6)
 
 nspecies.wnt <- crop(raster("nspecies_Trochilidae_nonbreeding.tif"),ext)
 nspecies.brd <- crop(raster("nspecies_Trochilidae_breeding.tif"),ext)
-
+print("species diversity data loaded. objects: nspecies.wnt & nspecies.brd. format: raster objects")
+setwd("~/Documents/nicheTracker/")

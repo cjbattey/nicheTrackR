@@ -23,16 +23,43 @@ names(clim.data) <- c("pre","frs","dtr","tmp")
 clim.data <- lapply(clim.data,FUN=function(e) setNames(e,c("lat","long","Jan","Feb","Mar",
                                                            "Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")))
 
-r <- raster(xmn=-180,xmx=180,ymn=-90,ymx=90,res=1/6)
 ######prepare climate datasets for PCA's
-#rasterize all datasets to harmonize for diff. number/order of points bw precip and all other vars
-clim.data.wint <- lapply(clim.data,FUN=function(e) {
+#need to rasterize all datasets to harmonize for number/order of points bw precip and all other vars
+#loop over species, storing output in clim.winter.
+clim.winter <- list()
+for(i in c(1:12)){
+  #apply within species, across variables
+clim.data.wint <- lapply(clim.data,FUN=function(e) 
+    {
   rasterize(
-    SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=(e$Nov+e$Dec+e$Jan)/3)))
-    ,r,field="var")
+    SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=rowMeans(e[wnt.months[[i]]])))),
+    r,field="var")
+    }
+  )
+clim.winter[[i]] <- clim.data.wint
 }
-)
-clim.winter <- crop(stack(clim.data.wint),ext)
+
+clim.winter <- lapply(clim.winter,FUN=function(e) crop(stack(e),ext))
+
+#repeat for breeding season
+clim.breeding <- list()
+for(i in c(1:12)){
+  #apply within species, across variables
+  clim.data.brd <- lapply(clim.data,FUN=function(e) 
+  {
+    rasterize(
+      SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=rowMeans(e[brd.months[[i]]])))),
+      r,field="var")
+  }
+  )
+  clim.breeding[[i]] <- clim.data.brd
+}
+
+clim.breeding <- lapply(clim.breeding, function(e) crop(stack(e),ext))
+
+
+
+
 #transform rasters back to data frame (now w/same points & order)
 #clim.winter <- lapply(clim.data.wint,FUN=function(e) {
 #  as.data.frame(e)
@@ -58,7 +85,7 @@ clim.breeding <- crop(stack(clim.data.brd),ext)
 #names(clim.breeding) <- names(clim.data)
 #clim.breeding <- na.omit(data.frame(as.data.frame(r,xy=T)[,1:2],clim.breeding))
 
-print("Data laded. Format: raster stack at 10min resolution w/7 layers (see names for var). Objects: clim.winter & clim.breeding")
+print("Climate data laded. Objects: clim.winter & clim.breeding")
 
 
 

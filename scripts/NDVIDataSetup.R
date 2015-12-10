@@ -39,14 +39,28 @@ setwd("~/Dropbox/phenology/gimms/")
 #   print(paste(i,"/12",sep=""))
 # }
 # writeRaster(ndvi,"ndvi_monthly.tif")
-
+print("reading in monthly NDVI data")
 ndvi <- crop(stack("~/Dropbox/phenology/ndvi_monthly.tif"),ext)
-ndvi.winter <- (ndvi[[1]]+ndvi[[2]]+ndvi[[12]])/3
-ndvi.breeding <- (ndvi[[4]]+ndvi[[5]]+ndvi[[6]])/3
-ndvi.winter <- resample(ndvi.winter,clim.winter)
-ndvi.breeding <- resample(ndvi.breeding,clim.breeding)
+
+print("subsetting and averaging across breeding and wintering months")
+ndvi.winter <- list()
+for(i in c(1:12)){
+  ndvi.w.sub <- mean(ndvi[[wnt.months[[i]]]])
+  ndvi.winter[[i]] <- ndvi.w.sub
+}
+
+ndvi.breeding <- list()
+for(i in c(1:12)){
+  ndvi.b.sub <- mean(ndvi[[brd.months[[i]]]])
+  ndvi.breeding[[i]] <- ndvi.b.sub
+}
+
+print("resampling to climate grid resolution")
+ndvi.winter <- lapply(ndvi.winter,function(e) resample(e,clim.winter[[1]]))
+ndvi.breeding <- lapply(ndvi.breeding,function(e) resample(e,clim.breeding[[1]]))
+
 setwd("~/Documents/nicheTracker/")
-print("NDVI loaded. objects: ndvi.winter and ndvi.breeding.")
+print("NDVI loaded. objects: ndvi.winter and ndvi.breeding. Format: list of rasters, in order of months.wnt")
 
 
 

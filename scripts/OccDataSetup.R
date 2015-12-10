@@ -20,11 +20,6 @@ ranges <- lapply(range.files,FUN=function(e) shapefile(paste("~/Documents/Trochi
 ranges.winter <- lapply(ranges,function(e) e[which(e@data$SEASONAL == 1 | e@data$SEASONAL == 3),])
 ranges.breeding <-  lapply(ranges,function(e) e[which(e@data$SEASONAL == 1 | e@data$SEASONAL == 2),])
 
-brd.months <- list(alhu=c(3,4,5),anhu=c(12,1,2),bchu=c(5,6),bthu=c(5,6,7),buhu=c(6,7),cahu=c(6,7),cohu=c(2:4),
-                   luhu=c(6,7),rthu=c(6,7,8),ruhu=c(5,6),schu=c(6,7),vohu=c(6,7))
-wnt.months <- list(alhu=c(10,11,12),anhu=c(8,9,10),bchu=c(1,2),bthu=c(11,12,1),buhu=c(12,1),cahu=c(12,1),cohu=c(2:4),
-                   luhu=c(12,1),rthu=c(12,1,2),ruhu=c(12,1),schu=c(12,1),vohu=c(12,1))
-
 print("reading in ebird reports")
 occ.wnt <- list()
 occ.brd <- list()
@@ -35,15 +30,15 @@ for (i in 1:12){
   a.brd <- a[which(a$month %in% brd.months[[i]]==T),]
   a.brd <- SpatialPoints(data.frame(a.brd$LONGITUDE,a.brd$LATITUDE))
   a.brd <- gIntersection(a.brd,ranges.breeding[[i]])
-  if(i %in% c(1,10) == T){
-    a <- subset(a,a$COUNTRY== "Mexico" | a$STATE_PROVINCE == "California")
-  }
   a.wnt <- a[which(a$month %in% wnt.months[[i]]==T),]
+  if(i %in% c(1,10) == T){
+    a.wnt <- subset(a.wnt,a.wnt$COUNTRY== "Mexico" | a.wnt$STATE_PROVINCE == "California")
+  }
   a.wnt <- SpatialPoints(data.frame(a.wnt$LONGITUDE,a.wnt$LATITUDE))
   if (i != 1){
   a.wnt <- gIntersection(a.wnt,ranges.winter[[i]])
   }
-  plot(a.brd)+plot(map,add=T)
+  plot(map)+points(a.wnt,col="blue")+points(a.brd,col="red")
   occ.wnt <- c(occ.wnt,a.wnt)
   occ.brd <- c(occ.brd,a.brd)
 #   assign(paste(substr(files[i],5,9),".wnt",sep=""),a.wnt)
@@ -56,7 +51,7 @@ names(occ.brd) <- names(brd.months)
 occ.wnt <- lapply(occ.wnt,function(e) SpatialPoints(gridSample(e,r,n=1)))
 occ.brd <- lapply(occ.brd,function(e) SpatialPoints(gridSample(e,r,n=1)))
 
-plot(occ.brd$luhu)+plot(map,add=T)
+setwd("~/Documents/nicheTracker/")
 # #Vertnet files (no taxonomy fields... why?)
 # Selasphorus <- read.delim("data/vertnet/Selasphorus_map-083d2e517b2b4374aa8a9815051c44d9.tsv",header=T)
 # Aheloisa <- read.delim("data/vertnet/Atthis_heloisa.txt")
