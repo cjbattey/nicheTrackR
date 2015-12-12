@@ -16,7 +16,7 @@ dtr <- read.table("./data/climate_CRU2/text/grid_10min_dtr.dat",header=F,sep="",
 #sunp <- read.table("./data/climate_CRU2/text/grid_10min_sunp.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 tmp <- read.table("./data/climate_CRU2/text/grid_10min_tmp.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 #wnd <- read.table("./data/climate_CRU2/text/grid_10min_wnd.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
-print("aligning points and reformatting")
+print("aligning points and averaging across breeding and wintering months per species")
 clim.data <- list(pre,frs,dtr,tmp)
 names(clim.data) <- c("pre","frs","dtr","tmp")
 
@@ -32,14 +32,16 @@ for(i in c(1:12)){
 clim.data.wint <- lapply(clim.data,FUN=function(e) 
     {
   rasterize(
-    SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=rowMeans(e[wnt.months[[i]]])))),
+    SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=rowMeans(e[wnt.months[[i]]+2])))),
     r,field="var")
     }
   )
 clim.winter[[i]] <- clim.data.wint
 }
 
-clim.winter <- lapply(clim.winter,FUN=function(e) crop(stack(e),ext))
+clim.winter <- lapply(clim.winter,FUN=function(e) stack(crop(stack(e),ext)))
+
+print("winter climate data ready")
 
 #repeat for breeding season
 clim.breeding <- list()
@@ -48,16 +50,16 @@ for(i in c(1:12)){
   clim.data.brd <- lapply(clim.data,FUN=function(e) 
   {
     rasterize(
-      SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=rowMeans(e[brd.months[[i]]])))),
+      SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=rowMeans(e[brd.months[[i]]+2])))),
       r,field="var")
   }
   )
   clim.breeding[[i]] <- clim.data.brd
 }
 
-clim.breeding <- lapply(clim.breeding, function(e) crop(stack(e),ext))
+clim.breeding <- lapply(clim.breeding,FUN=function(e) stack(crop(stack(e),ext)))
 
-
+print("breeding climate data ready")
 
 
 #transform rasters back to data frame (now w/same points & order)
@@ -69,23 +71,23 @@ clim.breeding <- lapply(clim.breeding, function(e) crop(stack(e),ext))
 #names(clim.winter) <- names(clim.data)
 #remove NA points (oceans) and add long,lat as first two columns
 #clim.winter <- na.omit(data.frame(as.data.frame(r,xy=T)[,1:2],clim.winter))
-
-##repeat the above for breeding season
-clim.data.brd <- lapply(clim.data,FUN=function(e) {
-  rasterize(
-    SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=(e$Apr+e$May+e$Jun)/3)))
-    ,r,field="var")
-}
-)
-clim.breeding <- crop(stack(clim.data.brd),ext)
-#clim.breeding <- lapply(clim.data.brd,FUN=function(e) {
-#  as.data.frame(e)
-#})
+# 
+# ##repeat the above for breeding season
+# clim.data.brd <- lapply(clim.data,FUN=function(e) {
+#   rasterize(
+#     SpatialPointsDataFrame(data.frame(long=e$long,lat=e$lat),data=(data.frame(var=(e$Apr+e$May+e$Jun)/3)))
+#     ,r,field="var")
+# }
+# )
+# clim.breeding <- stack(crop(stack(clim.data.brd),ext))
+# #clim.breeding <- lapply(clim.data.brd,FUN=function(e) {
+# #  as.data.frame(e)
+# #})
 #clim.breeding <- do.call(cbind,clim.breeding)
 #names(clim.breeding) <- names(clim.data)
 #clim.breeding <- na.omit(data.frame(as.data.frame(r,xy=T)[,1:2],clim.breeding))
 
-print("Climate data laded. Objects: clim.winter & clim.breeding")
+print("Climate data laded. Objects: clim.winter & clim.breeding. Format: list of raster stacks.")
 
 
 

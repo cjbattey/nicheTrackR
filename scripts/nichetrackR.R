@@ -79,6 +79,20 @@ for(i in c(1:12)) { #initiate loop over species index
   eq.wnt.brd <- ecospat.niche.equivalency.test(grid.wnt,grid.brd,rep=100)
   eq.res.brd <- ecospat.niche.equivalency.test(grid.res,grid.brd,rep=100)
   
+  print("running maxent analyses")
+  m.res <- maxent(bg.brd,occ.wnt[[i]])
+  m.wnt <- maxent(bg.wnt,occ.wnt[[i]])
+  m.brd <- maxent(bg.brd,occ.brd[[i]])
+  p.res <- predict(m.res,bg.brd)
+  p.wnt <- predict(m.wnt,bg.wnt)
+  p.brd <- predict(m.res,bg.brd)
+  p.res.wnt <- predict(m.res,bg.wnt)
+  p.wnt.brd <- predict(m.wnt,bg.brd)
+  p.brd.wnt <- predict(m.brd,bg.wnt)
+  
+  sim.m.wnt.res <- nicheOverlap(p.wnt,p.res)
+  sim.m.wnt.brd <- nicheOverlap(p.wnt,p.brd)
+  
   results.df <- rbind(results.df,c(names(wnt.months[i]),sim.wnt.res$obs$I,sim.wnt.brd$obs$I,sim.res.brd$obs$I,
                                    sim.wnt.res$p.I,sim.wnt.brd$p.I,sim.res.brd$p.I,eq.wnt.res$p.I,eq.wnt.brd$p.I,
                                    eq.res.brd$p.I))
@@ -88,9 +102,9 @@ for(i in c(1:12)) { #initiate loop over species index
   ecospat.plot.niche(grid.res,title=paste(names(wnt.months[i]),"Resident Niche"))
   ecospat.plot.niche(grid.wnt,title=paste(names(wnt.months[i]),"Nonbreeding Niche"))
   ecospat.plot.niche(grid.brd,title=paste(names(wnt.months[i]),"Breeding Niche"))
-  ecospat.plot.niche.dyn(grid.wnt,grid.res,title=paste(names(wnt.months[i]),"Nonbreeding vs. Resident\n Niche Overlap"))
-  ecospat.plot.niche.dyn(grid.wnt,grid.brd,title=paste(names(wnt.months[i]),"Nonbreeding vs. Breeding\n Niche Overlap"))
-  ecospat.plot.niche.dyn(grid.res,grid.brd,title=paste(names(wnt.months[i]),"Resident vs. Breeding\n Niche Overlap"))
+  ecospat.plot.niche.dyn(grid.wnt,grid.res,quant=0.02,title=paste(names(wnt.months[i]),"Nonbreeding vs. Resident\n Niche Overlap"))
+  ecospat.plot.niche.dyn(grid.wnt,grid.brd,quant=0.02,title=paste(names(wnt.months[i]),"Nonbreeding vs. Breeding\n Niche Overlap"))
+  ecospat.plot.niche.dyn(grid.res,grid.brd,quant=0.02,title=paste(names(wnt.months[i]),"Resident vs. Breeding\n Niche Overlap"))
   ecospat.plot.overlap.test(sim.wnt.res,type="I",title=paste(names(wnt.months[i]),"Nonbreeding vs. Resident\n Niche Similarity"))
   ecospat.plot.overlap.test(sim.wnt.brd,type="I",title=paste(names(wnt.months[i]),"Nonbreeding vs. Breeding\n Niche Similarity"))
   ecospat.plot.overlap.test(sim.res.brd,type="I",title=paste(names(wnt.months[i]),"Resident vs. Breeding\n Niche Similarity"))
@@ -98,6 +112,12 @@ for(i in c(1:12)) { #initiate loop over species index
   ecospat.plot.overlap.test(eq.wnt.brd,type="I",title=paste(names(wnt.months[i]),"Nonbreeding vs. Breeding\n Niche Equivalency"))
   ecospat.plot.overlap.test(eq.res.brd,type="I",title=paste(names(wnt.months[i]),"Resident vs. Breeding\n Niche Equivalency"))
   ecospat.plot.contrib(pca$c1,pca$eig)
+  plot(p.res,main="resident")
+  plot(p.wnt)
+  plot(p.brd)
+  plot(p.res.wnt)
+  plot(p.wnt.brd)
+  plot(p.brd.wnt)
   dev.off()
   
   print(paste(names(wnt.months[i])),"analysis complete")
