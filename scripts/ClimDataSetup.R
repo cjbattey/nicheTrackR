@@ -16,7 +16,8 @@ dtr <- read.table("./data/climate_CRU2/text/grid_10min_dtr.dat",header=F,sep="",
 #sunp <- read.table("./data/climate_CRU2/text/grid_10min_sunp.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 tmp <- read.table("./data/climate_CRU2/text/grid_10min_tmp.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
 #wnd <- read.table("./data/climate_CRU2/text/grid_10min_wnd.dat",header=F,sep="",colClasses=c(rep("numeric",14)))
-print("aligning points and averaging across breeding and wintering months per species")
+
+print("aligning point data, rasterizing means for breeding/nonbreeding months")
 clim.data <- list(pre,frs,dtr,tmp)
 names(clim.data) <- c("pre","frs","dtr","tmp")
 
