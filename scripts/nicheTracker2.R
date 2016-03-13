@@ -1,6 +1,6 @@
 ####Hummingbird seasonal movement and niche-tracking analysis
 library(data.table);library(dismo);library(ecospat);library(pbapply);library(rgeos);library(ggplot2)
-setwd("~/Documents/nicheTracker/scripts/")
+setwd("~/R/nicheTracker/scripts/")
 
 #load data
 source("setup_data.R")
@@ -106,7 +106,7 @@ ggplot(data=results,aes(x=I.obs,y=I.res.w,col=migStatus))+theme_bw()+xlim(0.25,1
   geom_point()+geom_abline(slope=1)
 
 
-hummers <- data.frame(fread("~/Documents/nicheTracker/nicheTracker2_hummingbirds.txt",drop=1))
+hummers <- data.frame(fread("~/R/nicheTracker/nicheTracker2_hummingbirds.txt",drop=1))
 names(hummers) <- c("species","centroid.distance", "I.obs", "I.res.s", "I.res.w", "p.similar")
 
 

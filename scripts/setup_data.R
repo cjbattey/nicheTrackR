@@ -1,6 +1,6 @@
 #gbif data procesing: how many species of hummingbird have enough location reports to use for niche modeling? 
 library(data.table);library(dismo);library(ecospat);library(SDMTools);library(pbapply)
-setwd("~/Documents/nicheTracker/")
+setwd("~/R/nicheTracker/")
 
 #set extent
 ext <- c(-155,-30,-65,65)
@@ -62,7 +62,7 @@ clim.wnt <- pblapply(climate,FUN=function(e){
 })
 names(clim.wnt) <- c("prec","tmax","tmean","tmin")
 
-setwd("~/Documents/nicheTracker/")
+setwd("~/R/nicheTracker/")
 
 # load altitude 
 alt <- crop(raster("~/Documents/worldclim/alt_2-5m_bil/alt.bil"),ext)
