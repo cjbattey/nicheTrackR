@@ -1,7 +1,7 @@
-nicheTracker <- function(k) {
+nicheTracker <- function(i) {
+  require(data.table);require(dismo);require(ecospat);require(pbapply);require(rgeos);require(ggplot2)  
   
-  #load species occurrence points, split by season
-  loc <- subset(gbif,species == k) 
+  loc <- subset(gbif,species == i) 
   loc.sum <- subset(loc,month%in%c(5,6,7)==T)
   loc.wnt <- subset(loc,month%in%c(11,12,1)==T)
   loc.sum <- SpatialPoints(data.frame(loc.sum[,.(decimallongitude,decimallatitude)]), proj4string=CRS(proj4string(alt)))
@@ -18,12 +18,16 @@ nicheTracker <- function(k) {
   sp.res.s <- na.omit(extract(bg.wnt.r,loc.sum)) #resident on summer territory
   sp.res.w <- na.omit(extract(bg.sum.r,loc.wnt)) #resident on winter territory
   
+  #continue if > N reports
+  if(nrow(sp.sum) > 15 & nrow(sp.wnt) > 15) {
+    
   #combo dataset for pca
-  df <- rbind(sp.sum,sp.wnt,sp.res.s,sp.res.w,bg.sum,bg.wnt) 
+  df <- rbind(sp.sum,sp.wnt,sp.res.s,sp.res.w,data.frame(bg.sum.dt),data.frame(bg.wnt.dt)) 
   
-  #set weighting to run PCA on full background data
+  #set weighting to train PCA on full background data
   weights <- c(rep(0,nrow(sp.sum)),rep(0,nrow(sp.wnt)),rep(0,nrow(sp.res.s)),
-               rep(0,nrow(sp.res.w)),rep(1,nrow(bg.sum)),rep(1,nrow(bg.wnt))) 
+               rep(0,nrow(sp.res.w)),rep(1,nrow(bg.sum.dt)),rep(1,nrow(bg.wnt.dt))) 
+  
   
   #run pca
   pca <- dudi.pca(df,row.w=weights,nf=2,scannf=F,center=T,scale=T) 
@@ -33,8 +37,8 @@ nicheTracker <- function(k) {
   pc.wnt <- pca$li[(1+nrow(sp.sum)):(nrow(sp.sum)+nrow(sp.wnt)),]
   pc.res.s <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)) : (1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)),]
   pc.res.w <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)) : (1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)),]
-  pc.bg.sum <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)) : (1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)+nrow(bg.sum)),]
-  pc.bg.wnt <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)+nrow(bg.sum)) : nrow(pca$li),]
+  pc.bg.sum <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)) : (1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)+nrow(bg.sum.dt)),]
+  pc.bg.wnt <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)+nrow(bg.sum.dt)) : nrow(pca$li),]
   pc.bg.all <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)) : nrow(pca$li),]
   
   #grid with kernal density estimator (see Broenniman et al. 2012, J. Biogeography)
@@ -44,15 +48,10 @@ nicheTracker <- function(k) {
   grid.res.w <- ecospat.grid.clim.dyn(glob=pc.bg.all,glob1=pc.bg.sum,sp=pc.res.w,R=100)
   
   #run similarity test
-  sim.s.w <- ecospat.niche.similarity.test(z1=grid.sum,z2=grid.wnt,rep=100,one.sided=F)
+  sim.s.w <- ecospat.niche.similarity.test.noplot(z1=grid.sum,z2=grid.wnt,rep=100,one.sided=F)
   overlap.res.s <- ecospat.niche.overlap(grid.sum,grid.res.s,cor=T)
   overlap.res.w <- ecospat.niche.overlap(grid.wnt,grid.res.w,cor=T)
-  #sim.s.rs <- ecospat.niche.similarity.test(z1=grid.sum,z2=grid.res.s,rep=100,one.sided=F)
-  #sim.w.rw <- ecospat.niche.similarity.test(z1=grid.wnt,z2=grid.res.w,rep=100,one.sided=F)
   
-  t2 <- Sys.time()
-  print(paste(i,t2-t1)) 
-  
-  c(species=paste(i),centroid.distance=centroid.distance,I.obs=sim.s.w$obs$I,I.res.s=overlap.res.s$I,
-         I.res.w=overlap.res.w$I,p.similar=sim.s.w$p.I) #output
+  data.frame(species=paste(i),centroid.distance=centroid.distance,I.obs=sim.s.w$obs$I,I.res.s=overlap.res.s$I,I.res.w=overlap.res.w$I,p.similar=sim.s.w$p.I)
+  }
 }
