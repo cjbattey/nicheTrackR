@@ -1,7 +1,7 @@
-ecospat.niche.similarity.test.noplot<- function(z1, z2, rep, one.sided = T) {
+ecospat.niche.similarity.test.noplot<- function(z1, z2, rep, one.sided = F) {
   R <- length(z1$x)
   #dev.new(2, 2, pointsize = 12)
-  par(mar = c(0, 0, 0, 0))
+  #par(mar = c(0, 0, 0, 0))
   l <- list()
   obs.o <- ecospat.niche.overlap(z1, z2, cor = T)
   sim.o <- data.frame(matrix(nrow = rep, ncol = 2))
@@ -27,8 +27,7 @@ ecospat.niche.similarity.test.noplot<- function(z1, z2, rep, one.sided = T) {
       z2.sim$z.cor <- (z2$Z != 0) * 1 * z2.sim$z.cor
     }
     if (!is.null(z2$y)) {
-      centroid <- which(z2$z.cor == 1, arr.ind = T)[1, 
-                                                    ]
+      centroid <- which(z2$z.cor == 1, arr.ind = T)[1, ]
       Z <- z2$Z/max(z2$Z)
       rand.centroids <- which(Z > 0, arr.ind = T)
       weight <- Z[Z > 0]
@@ -46,8 +45,7 @@ ecospat.niche.similarity.test.noplot<- function(z1, z2, rep, one.sided = T) {
             (next)()
           if (j.trans > R | j.trans < 0) 
             (next)()
-          z2.sim$z.cor[i.trans, j.trans] <- z2$z.cor[i, 
-                                                     j]
+          z2.sim$z.cor[i.trans, j.trans] <- z2$z.cor[i, j]
         }
       }
       z2.sim$z.cor <- (z2$Z != 0) * 1 * z2.sim$z.cor
@@ -66,10 +64,11 @@ ecospat.niche.similarity.test.noplot<- function(z1, z2, rep, one.sided = T) {
                                               1)
   }
   else {
-    l$p.D <- min((sum(sim.o$D <= obs.o$D) + 1), (sum(sim.o$D >= 
-                                                       obs.o$D) + 1)) * 2/(length(sim.o$D) + 1)
-    l$p.I <- min((sum(sim.o$I <= obs.o$I) + 1), (sum(sim.o$I >= 
-                                                       obs.o$I) + 1)) * 2/(length(sim.o$I) + 1)
+    #trying with pnorm...
+    #l$p.D <- pnorm(obs.o$I,mean(sim.o$I),sd(sim.o$I),lower.tail=F)
+    #l$p.I <- pnorm(obs.o$I,mean(sim.o$I),sd(sim.o$I),lower.tail=F)
+    l$p.D <- min((sum(sim.o$D <= obs.o$D) + 1), (sum(sim.o$D >= obs.o$D) + 1)) * 2/(length(sim.o$D) + 1)
+    l$p.I <- min((sum(sim.o$I <= obs.o$I) + 1), (sum(sim.o$I >= obs.o$I) + 1)) * 2/(length(sim.o$I) + 1)
   }
   return(l)
 }

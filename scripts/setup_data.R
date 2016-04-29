@@ -3,7 +3,7 @@ library(data.table);library(dismo);library(ecospat);library(SDMTools);library(pb
 registerDoMC(cores=4)
 
 #set extent
-ext <- c(-155,-30,-65,65)
+ext <- extent(-155,-30,-65,65)
 
 #load species breeding and nonbreeding months
 #? tbd
@@ -11,25 +11,10 @@ ext <- c(-155,-30,-65,65)
 ###############################################################
 ##### process occurrence data
 print("loading occurrence data")
-gbif <- fread("/Volumes/Seagate Backup Plus Drive/nicheTracker_data/gbif_parulidae.csv")
+gbif <- fread("/Volumes/Seagate Backup Plus Drive/nicheTracker_data/gbif_vireonidae.csv")
 gbif <- gbif[,.(species,infraspecificepithet,countrycode,decimallongitude,decimallatitude,day,month,year,collectioncode,institutioncode)]
 gbif$species <- factor(gbif$species)
 gbif <- subset(gbif,species != "" & is.na(gbif$decimallatitude)==F & is.na(gbif$decimallongitude)==F)
-
-#commented code below filters species for > 50 reports... now switched to filtering in the nicheTracker script to deal with out of range species/reports
-# s <- c(5,6,7)#set default winter/summer months 
-# w <- c(11,12,1)
-# 
-# countOccs <- function(i){ #function for counts of seasonal occurrence pts
-#     summer.reports <- nrow(gbif[which(gbif$species == i & gbif$month %in% s == T)])
-#     winter.reports <- nrow(gbif[which(gbif$species == i & gbif$month %in% w == T)])
-#     data.frame(species=i,summer.reports=summer.reports,winter.reports=winter.reports)
-# }
-# n.locs <- foreach(i=levels(gbif$species),.combine=rbind) %dopar% countOccs(i) #use %do% for parulidae & emberizidae, %dopar% for others
-# 
-# y <- n.locs[which(n.locs$summer.reports > 50 & n.locs$winter.reports > 50),]
-# gbif <- gbif[which(gbif$species %in% y$species ==T & is.na(gbif$decimallatitude)==F & is.na(gbif$decimallongitude)==F)]#filter for species with sufficient reports
-
 gbif$species <- factor(gbif$species)
 
 ###############################################################
@@ -44,6 +29,7 @@ climateSummary <- function(e){
   files <- list.files()
   files <- files[grep(".bil",files)]
   crop(stack(files),ext)
+  #stack(files)
 }
 climate <- foreach(i=folders) %dopar% climateSummary(i)
 names(climate[[1]]) <- c("January","October","November","December","February","March","April","May","June","July","August","September")
@@ -70,24 +56,27 @@ alt <- crop(raster("~/Documents/worldclim/alt_2-5m_bil/alt.bil"),ext)
 ###### load ndvi
 #See NDVIDataSetup.R for processing biweekly GIMMS data
 print("loading ndvi")
-ndvi <- stack("~/Dropbox/phenology/ndvi_monthly.tif")
+ndvi <- stack("~/Dropbox/gimms/ndvi_monthly.tif")
 ndvi.sum <- resample(mean(ndvi$ndvi_monthly.5, ndvi$ndvi_monthly.6, ndvi$ndvi_monthly.7),alt)
 ndvi.wnt <- resample(mean(ndvi$ndvi_monthly.11,ndvi$ndvi_monthly.12,ndvi$ndvi_monthly.1),alt)
 
 #############################################################
 ###### load range shapefiles
 print("loading range maps")
-setwd("~/Documents/Parulidae_rangeMaps/")
+setwd("~/Documents/Vireonidae_rangeMaps/Vireonidae/")
 files <- list.files()
 files <- files[grep(".shp",files)]
 names <- strsplit(files,"_")
 names <- lapply(names,function(e) e[c(1,2)])
 names <- lapply(names,function(e) paste(e[1],e[2]))
 names(files) <- names
-#files <- files[which(names(files) %in% as.character(gbif$species) ==T)] #209 range shapefiles with names matching gbif species
 ranges <- foreach(i=1:length(files)) %dopar% shapefile(files[i])
+ranges <- pblapply(ranges,function(e) spTransform(e,CRS("+init=epsg:3395")))
+ranges.buffered <- pblapply(ranges,function(e) gSimplify(e,1800))
+ranges.buffered <- foreach(i=ranges.buffered) %dopar% crop(spTransform(buffer(i,width=3e6,dissolve=T),CRS("+init=epsg:4326")),ext)
 ranges.names <- lapply(ranges, function(e) e@data$SCINAME[1])
 names(ranges) <- ranges.names
+names(ranges.buffered) <- ranges.names
 setwd("/R/nicheTracker/")
 
 #############################################################
@@ -113,13 +102,8 @@ bg.sum.r <- stack(clim.sum$prec,clim.sum$tmax,clim.sum$tmin,ndvi.sum,lc.all$pc.f
 names(bg.sum.r) <- c("prec","tmax","tmin","ndvi","forest","woodland","shrub","altitude")
 bg.wnt.r <- stack(clim.wnt$prec,clim.wnt$tmax,clim.wnt$tmin,ndvi.wnt,lc.all$pc.forest,lc.all$pc.woodland,lc.all$pc.shrub,alt)
 names(bg.wnt.r) <- c("prec","tmax","tmin","ndvi","forest","woodland","shrub","altitude")
-#&data frame
-bg.sum.dt <- data.table(na.omit(as.data.frame(bg.sum.r,xy=T)[3:10]))
-print("summer background ready")
-bg.wnt.dt <- data.table(na.omit(as.data.frame(bg.wnt.r,xy=T)[3:10]))
-print("winter background ready")
 
-rm(list=ls()[which(ls() %in% c("alt","bg.sum.r","bg.wnt.r","bg.sum.dt","bg.wnt.dt","gbif","ranges")==F)])
+rm(list=ls()[which(ls() %in% c("alt","bg.sum.r","bg.wnt.r","bg.sum.dt","bg.wnt.dt","gbif","ranges","ranges.buffered")==F)])
 
 
 
