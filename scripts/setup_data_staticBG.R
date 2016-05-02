@@ -4,9 +4,6 @@ library(data.table);library(dismo);library(ecospat);library(SDMTools);library(pb
 #set extent
 ext <- extent(-155,-30,-65,65)
 
-#load species breeding and nonbreeding months
-#? tbd
-
 ###############################################################
 ##### process occurrence data
 print("loading occurrence data")
@@ -65,26 +62,10 @@ print("loading range maps")
 setwd("~/Documents/Tyrannidae_rangeMaps/")
 files <- list.files()
 files <- files[grep(".shp",files)]
-# names <- strsplit(files,"_")   #think this can be skipped
-# names <- lapply(names,function(e) e[c(1,2)])
-# names <- lapply(names,function(e) paste(e[1],e[2]))
-# names(files) <- names
 ranges <- foreach(i=1:length(files)) %dopar% shapefile(files[i])
 ranges <- pblapply(ranges,function(e) spTransform(e,CRS("+init=epsg:3395")))
-
-ranges.buffered <- pblapply(ranges,function(e) gSimplify(e,1800))
-a <- ranges.buffered[[79]]
-#next line throws error on Tryanidae task 79 failed - "TopologyException: Input geom 0 is invalid: Self-intersection at or near point -141.31030016970917 75.57235377729225 at -141.31030016970917 75.57235377729225"
-#tests look like buffer introduces the topology error, but only on some samples
-ranges.buffered <- foreach(i=ranges.buffered) %dopar% buffer(i,width=3e6,dissolve=T)
-ranges.buffered <- foreach(i=ranges.buffered) %dopar% spTransform(i,CRS("+init=epsg:4326"))
-ranges.buffered <- foreach(i=ranges.buffered) %dopar% crop(i,ext)
-FALSE %in% lapply(ranges.buffered,function(e) gIsSimple(e))
-
-ranges.buffered <- foreach(i=ranges.buffered) %dopar% crop(spTransform(buffer(i,width=3e6,dissolve=T),CRS("+init=epsg:4326")),ext)
 ranges.names <- lapply(ranges, function(e) e@data$SCINAME[1])
 names(ranges) <- ranges.names
-names(ranges.buffered) <- ranges.names
 setwd("/R/nicheTracker/")
 
 #############################################################
@@ -111,8 +92,11 @@ names(bg.sum.r) <- c("prec","tmax","tmin","ndvi","forest","woodland","shrub","al
 bg.wnt.r <- stack(clim.wnt$prec,clim.wnt$tmax,clim.wnt$tmin,ndvi.wnt,lc.all$pc.forest,lc.all$pc.woodland,lc.all$pc.shrub,alt)
 names(bg.wnt.r) <- c("prec","tmax","tmin","ndvi","forest","woodland","shrub","altitude")
 
-rm(list=ls()[which(ls() %in% c("alt","bg.sum.r","bg.wnt.r","bg.sum.dt","bg.wnt.dt","gbif","ranges","ranges.buffered")==F)])
+bg.sum.df <- na.omit(as.data.frame(bg.sum.r))
+bg.wnt.df <- na.omit(as.data.frame(bg.wnt.r))
 
+rm(list=ls()[which(ls() %in% c("alt","bg.sum.r","bg.wnt.r","bg.sum.df","bg.wnt.df","gbif","ranges","ranges.buffered")==F)])
+setwd("/R/nicheTracker/")
 
 
 

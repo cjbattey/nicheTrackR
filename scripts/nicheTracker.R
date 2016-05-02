@@ -9,8 +9,8 @@ nicheTracker <- function(i) {
   loc.sum <- subset(loc,month%in%c(5,6,7)==T)
   loc.wnt <- subset(loc,month%in%c(11,12,1)==T)
   
-  #continue if > N reports & range shapefile exists
-  if(nrow(loc.wnt) > 15 & nrow(loc.sum) > 15 & names(ranges.buffered[i])==i) {
+  #continue if > N reports & range shapefile exists is.null(ranges.buffered[[i]])==F
+  if(nrow(loc.wnt) > 15 & nrow(loc.sum) > 15 & is.null(ranges.buffered[[i]])==F) {
   
   loc.sum <- SpatialPoints(data.frame(loc.sum[,.(decimallongitude,decimallatitude)]), proj4string=CRS(proj4string(alt)))
   loc.wnt <- SpatialPoints(data.frame(loc.wnt[,.(decimallongitude,decimallatitude)]), proj4string=CRS(proj4string(alt)))
@@ -31,8 +31,8 @@ nicheTracker <- function(i) {
   buffered.range <- spTransform(buffered.range,proj4string(bg.sum.r))
     
   #crop global background data from 3000km buffer around full species range 
-  bg.sum.r.crop <- crop(bg.sum.r,buffered.range) #
-  bg.wnt.r.crop <- crop(bg.wnt.r,buffered.range) #
+  bg.sum.r.crop <- mask(bg.sum.r,buffered.range) #
+  bg.wnt.r.crop <- mask(bg.wnt.r,buffered.range) #
   bg.sum.df <- na.omit(as.data.frame(bg.sum.r.crop))
   bg.wnt.df <- na.omit(as.data.frame(bg.wnt.r.crop))
   

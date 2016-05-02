@@ -1,15 +1,20 @@
 #### NicheTracker2: Seasonal movement and niche-tracking analysis 
 #this script implements and summarizes results - see setup_data and nicheTracker for data prep and analysis, respectively
 library(data.table);library(dismo);library(ecospat);library(pbapply);library(rgeos);library(ggplot2);library(doMC);library(foreach)
-registerDoMC(cores=3) 
+registerDoMC(cores=4) 
 
 #load data (warning: setup_data.R clears all objects from the workspace - see last line.)
-source("scripts/setup_data.R")
+source("scripts/setup_data_staticBG.R")
 source("scripts/ecospat.niche.similarity.test.noplot.R")
 source("scripts/nicheTracker.R")
+source("scripts/nicheTracker_staticBG.R")
 
 #run analyses in parallel (~6gb memory per core; swap ok with solid-state drive on mbp)
-out <- foreach(i=levels(gbif$species), .combine=rbind) %dopar% nicheTracker(i)
+#base nicheTracker masks background data to 3000km around current range
+#out <- foreach(i=levels(gbif$species), .combine=rbind) %dopar% nicheTracker(i)
+
+#staticBG runs same BG data for all species (all areas are "available" in similarity test)
+out <- foreach(i=levels(gbif$species), .combine=rbind) %dopar% nicheTracker_staticBG(i)
 
 #add migratory status from range maps
 r1 <- lapply(ranges,function(e) unlist(factor(e@data$SEASONAL))) #list of species and range map classifications
