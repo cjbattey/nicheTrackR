@@ -4,17 +4,23 @@
 nicheTracker <- function(i) {
   require(data.table);require(dismo);require(ecospat);require(pbapply);require(rgeos);require(ggplot2)  
   
-  #subset species/seasons
+  #subset species/seasons; remove occurrences outside known range
   loc <- subset(gbif,species == i) 
-  loc.sum <- subset(loc,month%in%c(5,6,7)==T)
-  loc.wnt <- subset(loc,month%in%c(11,12,1)==T)
+  loc.sum <- subset(loc,month%in%c(6,7,8)==T)
+  loc.wnt <- subset(loc,month%in%c(12,1,2)==T)
+  loc.sum <- SpatialPoints(data.frame(loc.sum[,.(decimallongitude,decimallatitude)]), proj4string=CRS(proj4string(ranges[[i]])))
+  loc.wnt <- SpatialPoints(data.frame(loc.wnt[,.(decimallongitude,decimallatitude)]), proj4string=CRS(proj4string(ranges[[i]])))
+  #loc.sum <- gIntersection(loc.sum,ranges[[i]][ranges[[i]]@data$SEASONAL == 2 | ranges[[i]]@data$SEASONAL == 1,])
+  #loc.wnt <- gIntersection(loc.wnt,ranges[[i]][ranges[[i]]@data$SEASONAL == 3 | ranges[[i]]@data$SEASONAL == 1,]) #problem: austral migrants!
   
-  #continue if > N reports & range shapefile exists is.null(ranges.buffered[[i]])==F
-  if(nrow(loc.wnt) > 15 & nrow(loc.sum) > 15 & is.null(ranges.buffered[[i]])==F) {
-  
-  loc.sum <- SpatialPoints(data.frame(loc.sum[,.(decimallongitude,decimallatitude)]), proj4string=CRS(proj4string(alt)))
-  loc.wnt <- SpatialPoints(data.frame(loc.wnt[,.(decimallongitude,decimallatitude)]), proj4string=CRS(proj4string(alt)))
-  
+  #note: vireos fails on task 13 bc there are no wintering localities w/in (tiny) mapped range...
+  #options          - add an if statement and run intersect only if total area is > n
+  #**this for now   - add if statement after filtering and don't analyze species w/o n reports within suitable range areas 
+  #                 ---note this will cause load balancing issues with doMC so won't run at 100% efficiency :(
+  #do this later?   - Could extract from the full range for sp. w/o occurrence data. 
+  #                 ---can't do "resident" niche that way tho
+  if(length(loc.wnt) > 15 & length(loc.sum) > 15){
+    
   #find centroid of seasonal occurrences
   centroid.sum <- gCentroid(loc.sum)
   centroid.wnt <- gCentroid(loc.wnt)
@@ -26,15 +32,9 @@ nicheTracker <- function(i) {
   sp.res.s <- na.omit(extract(bg.wnt.r,loc.sum)) #resident on summer territory
   sp.res.w <- na.omit(extract(bg.sum.r,loc.wnt)) #resident on winter territory
   
-  #pull buffered range
-  buffered.range <- ranges.buffered[[i]] 
-  buffered.range <- spTransform(buffered.range,proj4string(bg.sum.r))
-    
-  #crop global background data from 3000km buffer around full species range 
-  bg.sum.r.crop <- mask(bg.sum.r,buffered.range) #
-  bg.wnt.r.crop <- mask(bg.wnt.r,buffered.range) #
-  bg.sum.df <- na.omit(as.data.frame(bg.sum.r.crop))
-  bg.wnt.df <- na.omit(as.data.frame(bg.wnt.r.crop))
+  #extract available background data
+  bg.sum.df <- na.omit(data.frame(extract(bg.sum.r,ranges.buffered[[i]])))
+  bg.wnt.df <- na.omit(data.frame(extract(bg.wnt.r,ranges.buffered[[i]])))
   
   #combo dataset for pca
   df <- rbind(sp.sum,sp.wnt,sp.res.s,sp.res.w,bg.sum.df,bg.wnt.df)
@@ -54,6 +54,7 @@ nicheTracker <- function(i) {
   pc.bg.sum <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)) : (1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)+nrow(bg.sum.df)),]
   pc.bg.wnt <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)+nrow(bg.sum.df)) : nrow(pca$li),]
   pc.bg.all <- pca$li[(1+nrow(sp.sum)+nrow(sp.wnt)+nrow(sp.res.s)+nrow(sp.res.w)) : nrow(pca$li),]
+  rm(list=c("pca"))
   
   #grid with kernal density estimator (see Broenniman et al. 2012, J. Biogeography)
   grid.sum <- ecospat.grid.clim.dyn(glob=pc.bg.all,glob1=pc.bg.sum,sp=pc.sum,R=100) 
@@ -66,6 +67,15 @@ nicheTracker <- function(i) {
   overlap.res.s <- ecospat.niche.overlap(grid.sum,grid.res.s,cor=T)
   overlap.res.w <- ecospat.niche.overlap(grid.wnt,grid.res.w,cor=T)
   
+  #experimental maxent runs
+  #bg.sum.clim <- dropLayer(bg.sum.r,c(5,6,7))
+  #bg.wnt.clim <- dropLayer(bg.wnt.r,c(5,6,7))
+  
+  #max.sum <- maxent(bg.sum.clim,loc.sum)
+  #pred.sum <- predict(max.sum,bg.sum.clim)
+  #plot(pred.sum)
+  
   data.frame(species=paste(i),centroid.distance=centroid.distance,I.obs=sim.s.w$obs$I,I.res.s=overlap.res.s$I,I.res.w=overlap.res.w$I,p.similar=sim.s.w$p.I)
   }
 }
+
